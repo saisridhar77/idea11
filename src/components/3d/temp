@@ -1,0 +1,48 @@
+"use client";
+
+import { Canvas } from "@react-three/fiber";
+import { Preload, AdaptiveDpr } from "@react-three/drei";
+import { Suspense, useState } from "react";
+
+import Lights from "./Lights";
+import CameraController from "./CameraController";
+import TunnelEntry from "./TunnelEntry";
+import StadiumModel from "./StadiumModel";
+import Hotspots from "./Hotspots";
+import CrowdParticles from "./CrowdParticles";
+import Scoreboard from "./Scoreboard";
+import FireworksEffect from "./FireworksEffect";
+import EnvironmentSetup from "./EnvironmentSetup";
+
+export default function StadiumScene() {
+  const [degraded] = useState(false);
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0 }}>
+      <Canvas
+        camera={{ position: [0, 30, 80], fov: 75, near: 0.1, far: 600 }}
+        shadows={false}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => { gl.toneMapping = 4; gl.toneMappingExposure = 1.1; }}
+      >
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[0, 50, 0]} intensity={2} />
+        <AdaptiveDpr pixelated />
+
+        <Suspense fallback={null}>
+          <EnvironmentSetup />
+          {/* <Lights /> */}
+          <CameraController />
+          <TunnelEntry />
+          <StadiumModel />
+          <Hotspots />
+          {/* <CrowdParticles count={degraded ? 1000 : 3000} /> */}
+          {/* <Scoreboard /> */}
+          {/* <FireworksEffect /> */}
+          <Preload all />
+        </Suspense>
+      </Canvas>
+    </div>
+  );
+}
