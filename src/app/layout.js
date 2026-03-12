@@ -1,13 +1,16 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "SPORTSFEST 2025 — Enter The Arena",
+  title: "SPREE 2026",
   description:
-    "Experience the ultimate 3D sports festival. Explore the stadium, register for events, and be part of history.",
+    "Annual Sports Festival of BITS Goa, SPREE 2026 is a three-day extravaganza of sports, camaraderie, and unforgettable moments.SPREE 2026 promises to be the ultimate arena for athletes and sports enthusiasts alike. Join us from April 3rd to 4th for an unforgettable experience where champions are made and legends are born.",
   openGraph: {
-    title: "SPORTSFEST 2025",
+    title: "SPREE 2026",
     description: "Enter The Arena — An immersive 3D sports experience",
     images: ["/og-image.jpg"],
+  },
+  icons: {
+    icon: "/favicon.png",
   },
 };
 
