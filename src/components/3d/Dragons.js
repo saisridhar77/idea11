@@ -1,230 +1,228 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-// ─── Tuning ───────────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 const DRAGONS = [
-  { orbitRadius: 22, orbitSpeed: 0.18, orbitOffset: 0,              bodyColor: "#ff2200", emissive: "#ff4400", scale: 1.0,  yBase: 14, yAmp: 4, yFreq: 0.4 },
-  { orbitRadius: 30, orbitSpeed: 0.13, orbitOffset: Math.PI * 0.66, bodyColor: "#cc1100", emissive: "#ff2200", scale: 0.82, yBase: 20, yAmp: 5, yFreq: 0.35 },
-  { orbitRadius: 18, orbitSpeed: 0.22, orbitOffset: Math.PI * 1.33, bodyColor: "#ff5500", emissive: "#ff8800", scale: 0.7,  yBase: 10, yAmp: 3, yFreq: 0.5 },
+  { r:22, speed:0.12, offset:0,             color:"#8B1A00", emit:"#ff3300", scale:3.0, yBase:12, yAmp:2.5, yFreq:0.30 },
+  { r:30, speed:0.08, offset:Math.PI*0.7,   color:"#6B0F00", emit:"#dd2200", scale:3.8, yBase:18, yAmp:3.5, yFreq:0.25 },
+  { r:17, speed:0.15, offset:Math.PI*1.4,   color:"#9B2200", emit:"#ff4400", scale:2.6, yBase:9,  yAmp:2.0, yFreq:0.38 },
 ];
 
-const FIRE_COLORS = ["#ff2200", "#ff6600", "#ffaa00", "#ffdd00", "#ff4400"];
+const N_SEG  = 20;
+const SEG_GAP = 0.55;
 
-// ─── Single fire particle system ─────────────────────────────────────────────
-function FireBreath({ count = 60 }) {
-  const meshRef = useRef();
-  const dummy   = useMemo(() => new THREE.Object3D(), []);
+// Shared dark-horn material (created once, reused across all dragons)
+const HORN_MAT = new THREE.MeshStandardMaterial({ color: "#222" });
 
-  const particles = useMemo(() =>
-    Array.from({ length: count }, (_, i) => ({
-      life:    Math.random(),
-      speed:   0.04 + Math.random() * 0.06,
-      spread:  (Math.random() - 0.5) * 0.8,
-      spreadY: (Math.random() - 0.5) * 0.4,
-      offset:  Math.random() * Math.PI * 2,
-    })), [count]);
+// ─── Wing geometry ────────────────────────────────────────────────────────────
+const WING_PTS = [
+  [ 0,    0,    0],
+  [ 0.7,  0.9,  0],
+  [ 1.7,  1.2,  0],
+  [ 2.7,  0.8,  0],
+  [ 3.2,  0.2,  0],
+  [ 2.3, -0.4,  0],
+  [ 1.2, -0.3,  0],
+];
+const WING_FACES = [[0,1,6],[1,6,5],[1,2,5],[2,5,4],[2,3,4]];
 
-  const colorArr = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const c = new THREE.Color(FIRE_COLORS[i % FIRE_COLORS.length]);
-      arr[i * 3]     = c.r;
-      arr[i * 3 + 1] = c.g;
-      arr[i * 3 + 2] = c.b;
-    }
-    return arr;
-  }, [count]);
+function buildWingGeo(side) {
+  const s = side === "L" ? 1 : -1;
+  const verts = [];
+  WING_FACES.forEach(([a,b,c]) => {
+    [a,b,c].forEach(idx => verts.push(s * WING_PTS[idx][0], WING_PTS[idx][1], WING_PTS[idx][2]));
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
 
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return;
-    const t = clock.getElapsedTime();
-    particles.forEach((p, i) => {
-      p.life += p.speed;
-      if (p.life > 1) p.life = 0;
+const WING_GEO = { L: buildWingGeo("L"), R: buildWingGeo("R") };
 
-      const progress = p.life;
-      dummy.position.set(
-        progress * 4 + p.spread * progress,
-        p.spreadY * progress,
-        0
-      );
-      const s = (1 - progress) * 0.35 + 0.05;
-      dummy.scale.setScalar(s);
+function BatWing({ side, color, emissive }) {
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({
+    color, emissive, emissiveIntensity: 1,
+    side: THREE.DoubleSide, transparent: true, opacity: 0.75,
+  }), [color, emissive]);
+
+  return <mesh geometry={WING_GEO[side]} material={mat} rotation={[-Math.PI/2, 0, 0]} />;
+}
+
+// ─── Fire breath ──────────────────────────────────────────────────────────────
+function FireBreath({ active }) {
+  const COUNT = 60;
+  const ref   = useRef();
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const pts   = useMemo(() =>
+    Array.from({ length: COUNT }, () => ({
+      life: Math.random(),
+      spd:  0.02 + Math.random() * 0.03,
+      sx:   (Math.random() - 0.5) * 0.5,
+      sy:   (Math.random() - 0.5) * 0.25,
+    })), []);
+
+  useFrame(() => {
+    if (!ref.current || !active) return;
+    pts.forEach((p, i) => {
+      p.life += p.spd;
+      if (p.life > 1) {
+        p.life = 0;
+        p.sx = (Math.random() - 0.5) * 0.5;
+        p.sy = (Math.random() - 0.5) * 0.25;
+      }
+      dummy.position.set(p.sx * p.life, p.sy * p.life, p.life * 4);
+      dummy.scale.setScalar((1 - p.life) * 0.6 + 0.05);
       dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, dummy.matrix);
+      ref.current.setMatrixAt(i, dummy.matrix);
     });
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    ref.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[null, null, count]}>
-      <sphereGeometry args={[1, 6, 6]} />
-      <meshStandardMaterial
-        vertexColors={false}
-        color="#ff6600"
-        emissive="#ff3300"
-        emissiveIntensity={3}
-        transparent
-        opacity={0.7}
-        depthWrite={false}
-      />
+    <instancedMesh ref={ref} args={[null, null, COUNT]} visible={active}>
+      <sphereGeometry args={[1, 5, 5]} />
+      <meshBasicMaterial color="#ff5500" />
     </instancedMesh>
   );
 }
 
-// ─── Dragon body (segmented spine + wings) ───────────────────────────────────
-function DragonBody({ color, emissive, scale }) {
-  // Spine segments
-  const SEGMENTS = 12;
-  const spineSegments = useMemo(() =>
-    Array.from({ length: SEGMENTS }, (_, i) => ({
-      x: -i * 0.9,
-      y: Math.sin(i * 0.5) * 0.2,
-      r: Math.max(0.05, 0.32 - i * 0.022),
-    })), []);
+// ─── Dragon body ──────────────────────────────────────────────────────────────
+const RADII = Array.from({ length: N_SEG }, (_, i) => {
+  if (i === 0) return 0.25;
+  if (i < 5)   return 0.28 + i * 0.05;
+  return Math.max(0.05, 0.45 - (i - 5) * 0.03);
+});
 
-  // Wing shape (left side, mirrored for right)
-  const wingShape = useMemo(() => {
-    const s = new THREE.Shape();
-    s.moveTo(0, 0);
-    s.bezierCurveTo(1.5, 2.5, 4, 3.5, 5.5, 1.5);
-    s.bezierCurveTo(4.5, 0.5, 3, -0.5, 0, 0);
-    return s;
-  }, []);
+// Ribs: 3 per wing side, shared config
+const RIBS = [0, 1, 2].map(i => ({ len: 2.3 - i * 0.5, angle: i * 0.3 }));
 
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({
-    color,
-    emissive,
-    emissiveIntensity: 1.2,
-    roughness: 0.4,
-    metalness: 0.2,
-    side: THREE.DoubleSide,
+function DragonBody({ color, emissive, wavePhase }) {
+  const segRefs  = useRef([]);
+  const wingLRef = useRef();
+  const wingRRef = useRef();
+  const [breathing, setBreathing] = useState(false);
+
+  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({
+    color, emissive, emissiveIntensity: 1.4, roughness: 0.5, metalness: 0.1,
   }), [color, emissive]);
 
-  const bodyRef = useRef();
+  // Periodic fire breath trigger
+  useEffect(() => {
+    let timeout;
+    const cycle = () => {
+      timeout = setTimeout(() => {
+        setBreathing(true);
+        timeout = setTimeout(() => { setBreathing(false); cycle(); }, 1200 + Math.random() * 800);
+      }, 2000 + Math.random() * 5000);
+    };
+    cycle();
+    return () => clearTimeout(timeout);
+  }, []);
 
   useFrame(({ clock }) => {
-    if (!bodyRef.current) return;
-    const t = clock.getElapsedTime();
-    // Wing flap
-    const wingL = bodyRef.current.getObjectByName("wingL");
-    const wingR = bodyRef.current.getObjectByName("wingR");
-    if (wingL) wingL.rotation.z =  0.4 + Math.sin(t * 4) * 0.5;
-    if (wingR) wingR.rotation.z = -0.4 - Math.sin(t * 4) * 0.5;
+    const t    = clock.getElapsedTime();
+    const time = t * 2 + wavePhase;
+    const AMP  = 0.15;
+    const FREQ = 0.8 + Math.sin(t * 0.3) * 0.4;
 
-    // Tail wave
-    bodyRef.current.children.forEach((seg, i) => {
-      if (seg.name?.startsWith("seg")) {
-        seg.rotation.y = Math.sin(t * 2.5 + i * 0.4) * 0.12;
+    for (let i = 0; i < N_SEG; i++) {
+      const seg = segRefs.current[i];
+      if (!seg) continue;
+      const phase = i * 0.6;
+      const sy = Math.sin(time - phase) * AMP * (0.5 + Math.sin(t * 0.5) * 0.5);
+      const sx = Math.sin(time * 0.6 - phase * 0.4) * 0.08;
+      seg.position.set(sx, sy, -i * SEG_GAP);
+      if (i < N_SEG - 1) {
+        const ny = Math.sin(time - (i+1)*SEG_GAP*FREQ) * AMP * (0.3 + ((i+1)/N_SEG)*0.7);
+        seg.rotation.x = -Math.atan2(ny - sy, SEG_GAP) * 0.7;
       }
-    });
+    }
+
+    const flap = Math.sin(t * 3) * 0.6;
+    if (wingLRef.current) wingLRef.current.rotation.z =  0.25 + flap;
+    if (wingRRef.current) wingRRef.current.rotation.z = -0.25 - flap;
   });
 
-  return (
-    <group ref={bodyRef} scale={scale}>
-      {/* Head */}
-      <mesh position={[0.6, 0.1, 0]} material={mat}>
-        <boxGeometry args={[0.7, 0.45, 0.4]} />
-      </mesh>
-      {/* Snout */}
-      <mesh position={[1.05, -0.05, 0]} material={mat}>
-        <boxGeometry args={[0.45, 0.28, 0.28]} />
-      </mesh>
-      {/* Eye glow */}
-      <mesh position={[0.82, 0.2, 0.18]}>
-        <sphereGeometry args={[0.07, 8, 8]} />
-        <meshStandardMaterial color="#ffff00" emissive="#ffdd00" emissiveIntensity={8} />
-      </mesh>
-      <mesh position={[0.82, 0.2, -0.18]}>
-        <sphereGeometry args={[0.07, 8, 8]} />
-        <meshStandardMaterial color="#ffff00" emissive="#ffdd00" emissiveIntensity={8} />
-      </mesh>
+  const shoulderZ = -4 * SEG_GAP;
 
-      {/* Spine segments */}
-      {spineSegments.map((seg, i) => (
-        <mesh key={i} name={`seg${i}`} position={[seg.x, seg.y, 0]} material={mat}>
-          <sphereGeometry args={[seg.r, 8, 6]} />
+  // Wing group rendered for both sides to avoid duplication
+  const WingGroup = ({ side, posX, ribSign }) => (
+    <group ref={side === "L" ? wingLRef : wingRRef} position={[posX, 0.25, shoulderZ]}>
+      <BatWing side={side} color={color} emissive={emissive} />
+      {RIBS.map(({ len, angle }, i) => (
+        <mesh key={i} rotation={[0, 0, ribSign * angle]} material={bodyMat}>
+          <cylinderGeometry args={[0.02, 0.01, len, 5]} />
+        </mesh>
+      ))}
+    </group>
+  );
+
+  return (
+    <group>
+      {/* Head */}
+      <mesh position={[0, 0.1,  0.25]} material={bodyMat}><boxGeometry args={[0.6, 0.35, 0.5]}  /></mesh>
+      <mesh position={[0, -0.05, 0.6]} material={bodyMat}><boxGeometry args={[0.4, 0.2,  0.35]} /></mesh>
+
+      {/* Horns */}
+      {[[ 0.18, 0.3], [-0.18, -0.3]].map(([x, rot], i) => (
+        <mesh key={i} position={[x, 0.32, 0.08]} rotation={[0, 0, rot]} material={HORN_MAT}>
+          <coneGeometry args={[0.05, 0.45, 5]} />
         </mesh>
       ))}
 
-      {/* Wings — pivot from mid-spine */}
-      <group name="wingL" position={[-2.5, 0.5, 0]}>
-        <mesh rotation={[Math.PI * 0.1, 0.2, 0]}>
-          <shapeGeometry args={[wingShape]} />
-          <meshStandardMaterial
-            color={color} emissive={emissive} emissiveIntensity={0.8}
-            transparent opacity={0.75} side={THREE.DoubleSide} depthWrite={false}
-          />
+      {/* Eyes */}
+      {[0.2, -0.2].map((x, i) => (
+        <mesh key={i} position={[x, 0.12, 0.42]}>
+          <sphereGeometry args={[0.06, 7, 5]} />
+          <meshBasicMaterial color="#ffee00" />
         </mesh>
-        {/* Wing ribs */}
-        {[0, 1, 2].map((j) => (
-          <mesh key={j} rotation={[0, 0, j * 0.3]}>
-            <boxGeometry args={[4.5 - j * 0.8, 0.04, 0.06]} />
-            <meshStandardMaterial color={emissive} emissive={emissive} emissiveIntensity={2} />
-          </mesh>
-        ))}
-      </group>
-      <group name="wingR" position={[-2.5, 0.5, 0]}>
-        <mesh rotation={[Math.PI * 0.1, -0.2, 0]} scale={[1, 1, -1]}>
-          <shapeGeometry args={[wingShape]} />
-          <meshStandardMaterial
-            color={color} emissive={emissive} emissiveIntensity={0.8}
-            transparent opacity={0.75} side={THREE.DoubleSide} depthWrite={false}
-          />
-        </mesh>
-        {[0, 1, 2].map((j) => (
-          <mesh key={j} rotation={[0, 0, -j * 0.3]}>
-            <boxGeometry args={[4.5 - j * 0.8, 0.04, 0.06]} />
-            <meshStandardMaterial color={emissive} emissive={emissive} emissiveIntensity={2} />
-          </mesh>
-        ))}
-      </group>
+      ))}
 
-      {/* Fire breath — emitted from snout tip */}
-      <group position={[1.3, -0.05, 0]}>
-        <FireBreath count={50} />
-        <pointLight color="#ff4400" intensity={12} distance={6} decay={2} />
+      {/* Spine */}
+      {Array.from({ length: N_SEG }, (_, i) => (
+        <mesh key={i} ref={el => { segRefs.current[i] = el; }} material={bodyMat}>
+          <sphereGeometry args={[RADII[i], 7, 5]} />
+        </mesh>
+      ))}
+
+      {/* Wings */}
+      <WingGroup side="L" posX={ 0.5} ribSign={ 1} />
+      <WingGroup side="R" posX={-0.5} ribSign={-1} />
+
+      {/* Fire */}
+      <group position={[0, -0.05, 0.8]}>
+        <FireBreath active={breathing} />
+        <pointLight color="#ff4400" intensity={20} distance={8} decay={2} />
       </group>
     </group>
   );
 }
 
-// ─── Single orbiting dragon ───────────────────────────────────────────────────
-function Dragon({ cfg, index }) {
-  const groupRef = useRef();
-  const { orbitRadius, orbitSpeed, orbitOffset, bodyColor, emissive, scale, yBase, yAmp, yFreq } = cfg;
+// ─── Orbit + Dragon ───────────────────────────────────────────────────────────
+function Dragon({ cfg }) {
+  const ref = useRef();
 
   useFrame(({ clock }) => {
-    if (!groupRef.current) return;
-    const t = clock.getElapsedTime();
-    const angle = t * orbitSpeed + orbitOffset;
-
-    const x = Math.cos(angle) * orbitRadius;
-    const z = Math.sin(angle) * orbitRadius;
-    const y = yBase + Math.sin(t * yFreq + orbitOffset) * yAmp;
-
-    groupRef.current.position.set(x, y, z);
-
-    // Face direction of travel (tangent to orbit)
-    const tangentAngle = angle + Math.PI / 2;
-    groupRef.current.rotation.y = -tangentAngle;
-
-    // Pitch up/down with altitude change
-    const dy = Math.cos(t * yFreq + orbitOffset) * yAmp * yFreq;
-    groupRef.current.rotation.z = dy * 0.15;
-
-    // Gentle banking
-    groupRef.current.rotation.x = Math.sin(t * yFreq * 0.7) * 0.08;
+    if (!ref.current) return;
+    const t     = clock.getElapsedTime();
+    const angle = t * cfg.speed + cfg.offset;
+    ref.current.position.set(
+      Math.cos(angle) * cfg.r,
+      cfg.yBase + Math.sin(t * cfg.yFreq + cfg.offset) * cfg.yAmp,
+      Math.sin(angle) * cfg.r,
+    );
+    ref.current.rotation.y = -angle;
+    ref.current.rotation.z = Math.cos(t * cfg.yFreq + cfg.offset) * cfg.yAmp * cfg.yFreq * 0.1;
   });
 
   return (
-    <group ref={groupRef}>
-      <DragonBody color={bodyColor} emissive={emissive} scale={scale} />
-      {/* Ambient glow around dragon */}
-      <pointLight color="#ff3300" intensity={8} distance={12} decay={2} />
+    <group ref={ref} scale={cfg.scale}>
+      <DragonBody color={cfg.color} emissive={cfg.emit} wavePhase={cfg.offset} />
+      <pointLight color="#ff2200" intensity={4} distance={22 / cfg.scale} />
     </group>
   );
 }
@@ -233,9 +231,7 @@ function Dragon({ cfg, index }) {
 export default function Dragons() {
   return (
     <group>
-      {DRAGONS.map((cfg, i) => (
-        <Dragon key={i} cfg={cfg} index={i} />
-      ))}
+      {DRAGONS.map((cfg, i) => <Dragon key={i} cfg={cfg} />)}
     </group>
   );
 }
