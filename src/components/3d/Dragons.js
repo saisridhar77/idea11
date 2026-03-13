@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
@@ -92,7 +90,7 @@ function DragonModel({ cfg, index }) {
   const wingRRef = useRef();
   const [breathing, setBreathing] = useState(false);
 
-  const obj = useLoader(OBJLoader, "/models/dragon/Dragon.obj");
+  const obj = useLoader(OBJLoader, "/models/dragon/dragon.obj");
 
   const { bodyGeo, leftWingGeo, rightWingGeo, bodyMat, wingMat } = useMemo(() => {
     let srcGeo = null;
