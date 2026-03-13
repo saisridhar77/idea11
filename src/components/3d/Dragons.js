@@ -90,7 +90,7 @@ function DragonModel({ cfg, index }) {
   const wingRRef = useRef();
   const [breathing, setBreathing] = useState(false);
 
-  const obj = useLoader(OBJLoader, "/models/dragon/dragon.obj");
+  const obj = useLoader(OBJLoader, "/models/Dragon/Dragon.obj");
 
   const { bodyGeo, leftWingGeo, rightWingGeo, bodyMat, wingMat } = useMemo(() => {
     let srcGeo = null;
