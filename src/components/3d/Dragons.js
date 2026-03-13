@@ -126,8 +126,8 @@ function DragonBody({ color, emissive, wavePhase }) {
   useFrame(({ clock }) => {
     const t    = clock.getElapsedTime();
     const time = t * 2 + wavePhase;
-    const AMP  = 0.15;
-    const FREQ = 0.8 + Math.sin(t * 0.3) * 0.4;
+    const AMP  = 0.5;
+    const FREQ = 0.8;
 
     for (let i = 0; i < N_SEG; i++) {
       const seg = segRefs.current[i];
