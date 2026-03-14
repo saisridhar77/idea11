@@ -5,12 +5,12 @@ import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore, CAMERA_WAYPOINTS, CARD_CLOSE_WAYPOINTS, CARD_WAYPOINTS } from "@/store/useStore";
 
-const ORBIT_SPEED  = 0.05;
-const ORBIT_RADIUS = 1.6;
+const ORBIT_SPEED  = 0.1;
+const ORBIT_RADIUS = 2;
 const ORBIT_Y_AMP  = 0.2;
-const DRAG_SENSITIVITY = 0.003;
-const DRAG_CLAMP_X     = 0.4;
-const DRAG_CLAMP_Y     = 0.9;
+const DRAG_SENSITIVITY = -0.003;
+const DRAG_CLAMP_X     = 0.5;
+const DRAG_CLAMP_Y     = 0.5;
 const DRAG_LERP        = 0.07;
 
 const CLOSE_SECTIONS = new Set(Object.values(CARD_CLOSE_WAYPOINTS));
@@ -127,9 +127,9 @@ export default function CameraController() {
     const isZoom  = zoomedIn.current;
     const isClose = CLOSE_SECTIONS.has(sectionRef.current);
 
-    const posLerp  = 1-Math.pow(isZoom?0.005:0.018, delta);
-    const lookLerp = 1-Math.pow(isZoom?0.006:0.022, delta);
-    const fovLerp  = 1-Math.pow(isZoom?0.008:0.030, delta);
+    const posLerp  = 1-Math.pow(isZoom?0.005:0.001, delta);
+    const lookLerp = 1-Math.pow(isZoom?0.006:0.006, delta);
+    const fovLerp  = 1-Math.pow(isZoom?0.008:0.001, delta);
 
     smoothPos.current.lerp(targetPos.current, posLerp);
 

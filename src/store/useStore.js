@@ -58,7 +58,7 @@ Object.values(HOTSPOT_DATA).forEach(({ id, position:[cx,,cz] }) => { WP[id] = mk
 export { WP as CARD_WAYPOINTS };
 
 export const CAMERA_WAYPOINTS = [
-  { position:[0,45,35],  target:[0,0,0],    fov:72 }, // 0 aerial
+  { position:[0,5,45],  target:[0,0,0],    fov:72 }, // 0 aerial
   { position:[0,2.5,0],  target:[0,2,5],    fov:68 }, // 1 center
 
   { position:[0,2.5,0],  target:[0,2.2,13],    fov:65 }, WP.about.close,    // 2,3
@@ -68,7 +68,7 @@ export const CAMERA_WAYPOINTS = [
   { position:[0,2.5,0],  target:[13,2.2,-6.5], fov:65 }, WP.sponsors.close, // 10,11
   { position:[0,2.5,0],  target:[13,2.2,6.5],  fov:65 }, WP.team.close,     // 12,13
 
-  { position:[0,22,30],  target:[0,0,0],    fov:78 }, // 14 celebration
+  { position:[0,5,35],  target:[0,0,0],    fov:78 }, // 14 celebration
 ];
 
 export const CARD_CLOSE_WAYPOINTS = {

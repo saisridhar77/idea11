@@ -60,55 +60,94 @@ export default function ScrollSections() {
 // ─── Hero title ───────────────────────────────────────────────────────────────
 function HeroTitle() {
   return (
-    <motion.div
-      className="w-full flex flex-col items-center text-center select-none"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 1.0, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {/* Date badge */}
+    <div className="relative w-full flex flex-col items-center text-center select-none">
+      
+      {/* Full viewport-width dark band — stretches edge to edge regardless of content */}
+      <div style={{
+        position: "absolute",
+        top: "-60px",
+        bottom: "-60px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "100vw",
+        background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.78) 20%, rgba(0,0,0,0.88) 50%, rgba(0,0,0,0.78) 80%, transparent 100%)",
+        pointerEvents: "none",
+        zIndex: 0,
+      }} />
+
       <motion.div
-        className="font-mono text-xs tracking-[6px] mb-6 px-4 py-1.5 rounded-full border"
-        style={{ color: "#FF6B00", borderColor: "#FF6B0055", background: "#FF6B0012" }}
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.3, duration: 0.6 }}
+        className="relative z-10 flex flex-col items-center"
+        style={{ padding: "3rem 2rem" }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
       >
-        APRIL  3-5
+        {/* Date badge */}
+        <motion.div
+          className="font-mono text-xs tracking-[6px] mb-6 px-4 py-1.5 rounded-full border"
+          style={{
+            color: "#FFD700",
+            borderColor: "#FFD70066",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+          }}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.3, duration: 0.6 }}
+        >
+          APRIL 3–5
+        </motion.div>
+
+        {/* Wordmark */}
+        <h1
+          className="font-display leading-none"
+          style={{
+            fontSize: "clamp(4.5rem, 14vw, 11rem)",
+            letterSpacing: "-0.01em",
+            background: "linear-gradient(170deg, #ffffff 0%, #FFE566 40%, #FF8C00 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            filter: [
+              "drop-shadow(0 4px 0 rgba(0,0,0,1))",
+              "drop-shadow(0 8px 16px rgba(0,0,0,0.95))",
+              "drop-shadow(0 0 50px rgba(255,160,0,0.45))",
+            ].join(" "),
+          }}
+        >
+          SPREE 26
+        </h1>
+
+        {/* Divider + tagline */}
+        <div className="flex items-center gap-4 mt-6 mb-3 w-screen max-w-2xl">
+          <div className="flex-1 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,210,0,0.45))" }} />
+          <span
+            className="font-mono text-xs tracking-[5px]"
+            style={{
+              color: "#FFD700",
+              textShadow: "0 0 18px rgba(255,215,0,0.55), 0 1px 6px rgba(0,0,0,0.99)",
+            }}
+          >
+            UNLEASHING THE UNTAMED
+          </span>
+          <div className="flex-1 h-px"
+            style={{ background: "linear-gradient(90deg, rgba(255,210,0,0.45), transparent)" }} />
+        </div>
+
+        <p
+          className="font-mono text-xs tracking-[5px]"
+          style={{
+            color: "rgba(255,255,255,0.85)",
+            textShadow: "0 1px 10px rgba(0,0,0,1), 0 0 30px rgba(0,0,0,1)",
+          }}
+        >
+          SCROLL DOWN TO ENTER THE ARENA
+        </p>
       </motion.div>
-
-      {/* Main wordmark — gradient + glow */}
-      <h1
-        className="font-display leading-none"
-        style={{
-          fontSize: "clamp(4.5rem, 14vw, 11rem)",
-          letterSpacing: "-0.01em",
-          background: "linear-gradient(160deg, #ffffff 20%, #FF6B00 65%, #FFD700 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          filter: "drop-shadow(0 0 50px rgba(255,107,0,0.5))",
-        }}
-      >
-        SPREE 26
-      </h1>
-
-      {/* Divider with tagline */}
-      <div className="flex items-center gap-4 my-5 w-full max-w-lg">
-        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, #FF6B0077)" }} />
-        <span className="font-mono text-xl tracking-[4px]" style={{ color: "#FF6B00" }}>
-          UNLEASHING THE UNTAMED
-        </span>
-        <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, #FF6B0077, transparent)" }} />
-      </div>
-
-      <p className="font-mono text-xs tracking-[5px]" style={{ color: "rgba(255,255,255,0.6)" }}>
-        SCROLL DOWN TO ENTER THE ARENA
-      </p>
-    </motion.div>
+    </div>
   );
-}
-
+} 
 // ─── Section HUD ──────────────────────────────────────────────────────────────
 function SectionHUD({ sec, isActive, onCta }) {
   const isRight  = sec.align === "right";

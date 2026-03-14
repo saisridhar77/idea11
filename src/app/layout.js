@@ -10,7 +10,7 @@ export const metadata = {
     images: ["/og-image.jpg"],
   },
   icons: {
-    icon: "/favicon.png",
+    icon: "/logo.jpeg",
   },
 };
 

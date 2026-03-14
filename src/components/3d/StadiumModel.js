@@ -30,7 +30,7 @@ export default function StadiumModel() {
       object={scene}
       scale={200}
       position={[0, -20, 0]}
-      rotation={[0,  Math.PI / 3, 0]}
+      rotation={[0,  Math.PI, 0]}
     />
   );
 }
